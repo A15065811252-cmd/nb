@@ -1,0 +1,19 @@
+{
+  "name": "of-human-bondage-game",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/game.js --bundle --format=iife --minify --legal-comments=linked --outfile=game.js",
+    "check": "node --check src/game.js && node --check src/world.js && node --check src/story.js && node --check src/reading-notes.js && node --check src/map.js && node --check src/sound.js && node --check src/door.js && node --check src/fullscreen.js",
+    "test": "node tests/playthrough.mjs"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "0.21.0",
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.10",
+    "playwright-core": "1.57.0"
+  }
+}

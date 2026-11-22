@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eee8dc">
+  <title>人性的枷锁 · Of Human Bondage</title>
+  <link rel="stylesheet" href="./style.css">
+  <script defer src="./game.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <div class="wordmark">
+      <span class="seal" aria-hidden="true">M</span>
+      <div><strong>人性的枷锁</strong><span lang="en">Of Human Bondage</span></div>
+    </div>
+    <nav class="top-nav" aria-label="游戏导航">
+      <button id="play-tab" type="button" aria-current="page">游玩</button>
+      <button id="map-tab" type="button">地图</button>
+      <button id="acts-tab" type="button">全书目录</button>
+    </nav>
+    <span class="folio">W. Somerset Maugham<span aria-hidden="true"> · </span>1915</span>
+  </header>
+
+  <main id="play-view" class="play-view">
+    <aside id="chapter-rail" class="chapter-rail" aria-label="第一幕章节">
+      <div class="rail-head">
+        <p class="eyebrow"><b id="rail-label">第一幕</b> <span id="rail-roman" lang="en">/ ACT I</span></p>
+        <h1 id="rail-title">牧师家与寄宿学校</h1>
+        <div class="progress-title"><span>游玩进度</span><strong id="act-progress">0 / 21</strong></div>
+        <progress id="act-meter" value="0" max="21" aria-label="第一幕完成章数"></progress>
+      </div>
+      <ol id="chapter-list" class="chapter-list"></ol>
+    </aside>
+    <aside id="map-rail" class="chapter-rail map-rail" aria-label="第一幕地图" hidden>
+      <p class="eyebrow">第一幕 / ACT I</p>
+      <h1>旅程地图</h1>
+      <div id="district-list" class="district-list" aria-label="选择地区"></div>
+      <div class="map-sheet">
+        <div class="map-sheet-title"><strong id="map-area-name"></strong><span aria-hidden="true">↑ 北</span></div>
+        <canvas id="map-plan" width="300" height="179" aria-label="地区平面图"></canvas>
+        <p class="map-key"><span aria-hidden="true">●</span> 你的位置</p>
+      </div>
+      <ol id="site-list" class="site-list" aria-label="地区地点"></ol>
+    </aside>
+
+    <section class="game-area" aria-label="游戏场景">
+      <div id="stage" class="stage">
+        <canvas id="world" aria-label="可移动和观察的三维游戏场景"></canvas>
+        <div class="stage-shade"></div>
+        <div id="scene-fade" class="scene-fade" aria-hidden="true"></div>
+        <p id="scene-place" class="scene-place"></p>
+        <p id="renderer-message" class="renderer-message" hidden></p>
+        <button id="world-marker" class="world-marker" type="button" hidden>
+          <span class="marker-dot" aria-hidden="true"></span><span id="marker-name"></span>
+        </button>
+        <button id="door-marker" class="world-marker door-marker" type="button" aria-label="开门" data-action="开门" hidden><kbd aria-hidden="true">E</kbd></button>
+        <div class="scene-caption">
+          <p id="chapter-number" class="eyebrow"></p>
+          <h2 id="chapter-title"></h2>
+          <p id="chapter-intro"></p>
+        </div>
+        <div class="motion-controls" aria-label="移动和转向">
+          <button type="button" data-key="ArrowLeft" aria-label="向左看">↶</button>
+          <button type="button" data-key="KeyW" aria-label="前进">↑</button>
+          <button type="button" data-key="ArrowRight" aria-label="向右看">↷</button>
+          <button id="fullscreen-toggle" class="fullscreen-toggle" type="button" aria-pressed="false" aria-keyshortcuts="Z Escape">全屏</button>
+        </div>
+        <div class="touch-move" role="group" aria-label="触屏移动">
+          <button type="button" data-key="KeyW" aria-label="前进">↑</button>
+          <button type="button" data-key="KeyA" aria-label="向左横移">←</button>
+          <button type="button" data-key="KeyS" aria-label="后退">↓</button>
+          <button type="button" data-key="KeyD" aria-label="向右横移">→</button>
+        </div>
+      </div>
+
+      <div class="taskbar">
+        <div class="taskbar-copy">
+          <p class="eyebrow" id="objective-label"></p>
+          <p id="objective" aria-live="polite"></p>
+        </div>
+        <div class="taskbar-actions">
+          <button class="button secondary" id="open-book" type="button">英文原文</button>
+          <button class="button secondary" id="return-story" type="button" hidden>回到当前剧情</button>
+          <button class="button primary" id="observe" type="button"></button>
+        </div>
+      </div>
+      <div class="game-footer">
+        <p id="control-hint"><span class="keyboard-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动 · 拖动视角 · <kbd>E</kbd> 交互 · <kbd>Z</kbd> 全屏</span><span class="touch-hint">按住方向键移动 · 拖动转头 · 点门或线索交互</span></p>
+        <div class="footer-tools">
+          <button id="scene-audio" class="sound-toggle" type="button" aria-pressed="true">场景音 开</button>
+          <p id="save-status" role="status">进度保存在本机</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <main id="acts-view" class="acts-view" hidden>
+    <div class="acts-heading">
+      <p class="eyebrow">OF HUMAN BONDAGE</p>
+      <h1>全书目录</h1>
+      <p>全书 122 章，按原文顺序改编为八幕。</p>
+    </div>
+    <ol id="acts-list" class="acts-list"></ol>
+  </main>
+
+  <dialog id="reader" aria-labelledby="reader-title">
+    <div class="reader-shell">
+      <header class="reader-header">
+        <div><p id="reader-kicker" class="eyebrow"></p><h2 id="reader-title"></h2></div>
+        <button id="close-reader" class="icon-button" type="button" aria-label="返回场景">×</button>
+      </header>
+      <div id="reader-tabs" class="reader-tabs" aria-label="原文章节内导航"></div>
+      <div id="reader-body" class="reader-body"></div>
+      <footer id="reader-footer" class="reader-footer"></footer>
+    </div>
+  </dialog>
+
+  <template id="act-complete-template">
+    <div class="complete-card">
+      <p class="eyebrow">ACT I</p>
+      <h3>你走出了校门</h3>
+      <p>菲利普已经告别了珀金斯。第一幕的 21 章原文和理解检查均已完成。</p>
+    </div>
+  </template>
+  <noscript>请打开浏览器的 JavaScript 功能后游玩。</noscript>
+</body>
+</html>
