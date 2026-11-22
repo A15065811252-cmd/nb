@@ -1,1 +1,5 @@
 node_modules/
+.godot-tools/
+godot/.godot/
+godot/dawn/subtitles.zh-cn.local.json
+godot/dawn/chapter_end.zh-cn.local.json
