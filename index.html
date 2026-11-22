@@ -19,7 +19,10 @@
       <button id="map-tab" type="button">地图</button>
       <button id="acts-tab" type="button">全书目录</button>
     </nav>
-    <span class="folio">W. Somerset Maugham<span aria-hidden="true"> · </span>1915</span>
+    <div class="progress-tools" aria-label="本机游玩进度">
+      <p id="game-progress" role="status"></p>
+      <button id="reset-progress" class="sound-toggle" type="button">重置进度</button>
+    </div>
   </header>
 
   <main id="play-view" class="play-view">
@@ -104,6 +107,18 @@
     </div>
     <ol id="acts-list" class="acts-list"></ol>
   </main>
+
+  <dialog id="reset-dialog" aria-labelledby="reset-title" aria-describedby="reset-description">
+    <form id="reset-form">
+      <h2 id="reset-title">重置本机进度？</h2>
+      <p id="reset-description">已完成的章节、场景线索、阅读与答题记录都会清除。游戏会回到第 1 章《破晓》。</p>
+      <p id="reset-error" role="alert" hidden>无法写入本机存档，请检查浏览器的存储权限后重试。</p>
+      <div class="reset-actions">
+        <button id="cancel-reset" class="button secondary" type="button" autofocus>取消</button>
+        <button class="button primary" type="submit">确认重置</button>
+      </div>
+    </form>
+  </dialog>
 
   <dialog id="reader" aria-labelledby="reader-title">
     <div class="reader-shell">

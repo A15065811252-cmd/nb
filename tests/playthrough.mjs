@@ -306,6 +306,20 @@ try {
   await page.reload();
   assert.equal(await page.locator("#act-progress").textContent(), "21 / 21");
   assert.equal(await page.locator("#chapter-title").textContent(), chapters.at(-1).title);
+  assert.match(await page.locator("#game-progress").textContent(), /已完成 21 \/ 21 章/);
+  await page.getByRole("button", {name: "场景音 开", exact: true}).click();
+  await page.getByRole("button", {name: "全书目录", exact: true}).click();
+  await page.getByRole("button", {name: "重置进度", exact: true}).click();
+  await page.getByRole("button", {name: "取消", exact: true}).click();
+  assert.match(await page.locator("#game-progress").textContent(), /已完成 21 \/ 21 章/);
+  await page.getByRole("button", {name: "重置进度", exact: true}).click();
+  await page.getByRole("button", {name: "确认重置", exact: true}).click();
+  assert.equal(await page.locator("#chapter-title").textContent(), "破晓");
+  assert.match(await page.locator("#game-progress").textContent(), /已完成 0 \/ 21 章 · 第 1 章线索 0 \/ 3/);
+  await page.reload();
+  assert.equal(await page.locator("#chapter-list button:enabled").count(), 1);
+  assert.equal(await page.getByRole("button", {name: "场景音 关", exact: true}).isVisible(), true);
+  assert.match(await page.locator("#game-progress").textContent(), /已完成 0 \/ 21 章/);
   await page.close();
 
   const mobile = await browser.newPage({
@@ -345,6 +359,7 @@ try {
   await mobile.locator("html[data-game-fullscreen]").waitFor({state: "detached"});
   if (process.env.BONDAGE_SCREENSHOTS) await mobile.screenshot({path: join(process.env.BONDAGE_SCREENSHOTS, "bondage-mobile.png")});
   await mobile.getByRole("button", {name: "看向窗边", exact: true}).tap();
+  await mobile.waitForFunction(() => document.querySelector("#game-progress").textContent.includes("线索 1 / 3"));
   await mobile.getByRole("button", {name: "查看原段"}).tap();
   assert.ok(await mobile.locator("#reader").isVisible());
   assert.deepEqual(errors, []);

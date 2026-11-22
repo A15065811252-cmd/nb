@@ -7,6 +7,7 @@ import {setupFullscreen} from "./fullscreen.js";
 const get = (id) => document.getElementById(id);
 const reader = get("reader");
 const readerBody = get("reader-body");
+const resetDialog = get("reset-dialog");
 const storageKey = "of-human-bondage:save:1";
 const symbols = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
 const actNames = ["一", "二", "三", "四", "五", "六", "七", "八"];
@@ -38,6 +39,10 @@ function loadSave() {
   } catch {
     get("save-status").textContent = "本次进度仅保存在当前窗口";
   }
+  return restoreProgress(prior);
+}
+
+function restoreProgress(prior) {
   const records = chapters.map((chapter, index) => {
     const entry = prior?.records?.[index];
     const found = Number.isInteger(entry?.found) ? Math.min(3, Math.max(0, entry.found)) : 0;
@@ -53,12 +58,14 @@ function loadSave() {
   return {current, records, sceneAudio: prior?.sceneAudio !== false};
 }
 
-function save() {
+function save(progress = state) {
   try {
-    localStorage.setItem(storageKey, JSON.stringify(state));
+    localStorage.setItem(storageKey, JSON.stringify(progress));
     get("save-status").textContent = "进度已保存在本机";
+    return true;
   } catch {
     get("save-status").textContent = "本次进度仅保存在当前窗口";
+    return false;
   }
 }
 
@@ -340,6 +347,8 @@ function enterChapter(index, throughDoor = false) {
 
 function renderObjective() {
   const {found, completed, read} = activeRecord();
+  const done = state.records.filter((record) => record.completed).length;
+  get("game-progress").textContent = `已完成 ${done} / ${chapters.length} 章 · 第 ${activeChapter().number} 章线索 ${found} / ${activeChapter().beats.length}`;
   const [, , clue] = activeChapter().beats[found] ?? [];
   const action = get("observe");
   action.disabled = movingToClue;
@@ -619,7 +628,7 @@ const world = createWorld({
   stage: get("stage"),
   marker: get("world-marker"),
   doorMarker: get("door-marker"),
-  canMove: () => !crossing && !reader.open && get("acts-view").hidden,
+  canMove: () => !crossing && !reader.open && !resetDialog.open && get("acts-view").hidden,
   onInteract: interact,
   onStep: effects.step,
   onDoor: effects.door,
@@ -645,13 +654,32 @@ const world = createWorld({
 });
 
 const fullscreen = setupFullscreen(get("fullscreen-toggle"), {
-  canEnter: () => currentView !== "acts" && !reader.open,
+  canEnter: () => currentView !== "acts" && !reader.open && !resetDialog.open,
   clearInput: world.clearInput
 });
 get("play-tab").addEventListener("click", () => showView("play"));
 get("map-tab").addEventListener("click", () => showView("map"));
 get("acts-tab").addEventListener("click", () => showView("acts"));
 get("return-story").addEventListener("click", () => showView("play"));
+get("reset-progress").addEventListener("click", () => {
+  if (crossing || movingToClue) return;
+  world.clearInput();
+  get("reset-error").hidden = true;
+  resetDialog.showModal();
+});
+get("cancel-reset").addEventListener("click", () => resetDialog.close());
+get("reset-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const fresh = restoreProgress({sceneAudio: state.sceneAudio});
+  if (!save(fresh)) {
+    get("reset-error").hidden = false;
+    return;
+  }
+  Object.assign(state, fresh);
+  resetDialog.close();
+  enterChapter(0);
+  showView("play");
+});
 get("observe").addEventListener("click", interact);
 get("world-marker").addEventListener("click", interact);
 get("door-marker").addEventListener("click", world.toggleDoor);
