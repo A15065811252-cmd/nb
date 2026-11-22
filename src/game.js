@@ -25,6 +25,11 @@ let mapPosition;
 let mapArrival = false;
 let voiceRate = .85;
 let crossing = false;
+const dawnScenes = [
+  {action: "看向窗边", speaker: "女仆", cue: 1, evidence: 0},
+  {action: "随女仆下楼", speaker: "母亲", cue: 5, evidence: 4},
+  {action: "转到门厅", speaker: "医生", cue: 24, evidence: 24}
+];
 
 function loadSave() {
   let prior;
@@ -85,6 +90,7 @@ function showView(view, throughDoor = false) {
   const directory = view === "acts";
   const previousView = currentView;
   currentView = view;
+  if (view !== previousView) narrator.stop();
   get("play-view").hidden = directory;
   get("acts-view").hidden = !directory;
   get("chapter-rail").hidden = map;
@@ -102,6 +108,7 @@ function showView(view, throughDoor = false) {
     const [area, site] = locationForChapter(activeChapter().number);
     openDistrict(area, site, throughDoor);
   } else if (!map && worldView === "map") enterChapter(state.current, throughDoor);
+  else if (!map && !directory) renderDawnLine();
 }
 
 function wait(milliseconds) {
@@ -143,6 +150,7 @@ function siteChapterLabel(site) {
 
 function openDistrict(area, site = 0, throughDoor = false) {
   movingToClue = false;
+  renderDawnLine();
   mapArrival = false;
   district = area;
   selectedSite = site;
@@ -311,6 +319,7 @@ function renderChapterList(scrollToCurrent = false) {
 }
 
 function enterChapter(index, throughDoor = false) {
+  narrator.stop();
   state.current = index;
   movingToClue = false;
   selectedAnswers = [];
@@ -325,6 +334,7 @@ function enterChapter(index, throughDoor = false) {
     : ["school", "study"].includes(chapter.scene) ? "school" : "house");
   renderChapterList(true);
   renderObjective();
+  renderDawnLine();
   if (index > 0 || activeRecord().found > 0) save();
 }
 
@@ -338,7 +348,7 @@ function renderObjective() {
     get("objective-label").textContent = "场景线索 " + (found + 1) + " / 3";
     get("objective").textContent = clue;
     get("marker-name").textContent = clue;
-    action.textContent = movingToClue ? "正在靠近…" : "前往线索";
+    action.textContent = movingToClue ? "正在靠近…" : activeChapter().number === 1 ? dawnScenes[found].action : "前往线索";
   } else if (completed) {
     get("objective-label").textContent = "本章已完成";
     get("objective").textContent = isLastFirstActChapter() ? "第一幕 · 已通关" : "原文与理解检查已完成";
@@ -352,6 +362,26 @@ function renderObjective() {
     get("objective").textContent = "三个线索已找到，继续读完本章";
     action.textContent = "继续读原文";
   }
+}
+
+function renderDawnLine(cue) {
+  const panel = get("dawn-line");
+  const segment = activeRecord().found - 1;
+  const scene = currentView === "play" && activeChapter().number === 1 ? dawnScenes[segment] : undefined;
+  panel.hidden = !scene;
+  panel.replaceChildren();
+  if (!scene) return;
+  const quote = node("p", "dawn-quote", activeChapter().paragraphs[cue ?? scene.cue]);
+  quote.lang = "en";
+  quote.setAttribute("aria-live", "polite");
+  const status = node("span", "dawn-status");
+  status.setAttribute("role", "status");
+  const listen = button("▶", "speak", () => narrator.play(1, cue ?? scene.cue, listen, status, voiceRate));
+  listen.setAttribute("aria-label", "朗读场景原句");
+  listen.setAttribute("aria-pressed", "false");
+  const speaker = cue === 3 ? "女仆" : scene.speaker;
+  panel.append(node("span", "dawn-speaker", speaker), quote, listen,
+    button("查看原段", "evidence-link", () => openReader(segment, cue ?? scene.evidence)), status);
 }
 
 function interact() {
@@ -372,27 +402,33 @@ function interact() {
     return;
   }
   movingToClue = true;
+  const dawn = activeChapter().number === 1;
+  narrator.stop();
+  if (dawn && record.found === 1) renderDawnLine(3);
   renderObjective();
   world.guide(() => {
     movingToClue = false;
     const segment = record.found++;
     const kind = activeChapter().beats[segment][1];
     world.reveal(segment);
-    if (activeChapter().number === 1 && segment === 0) effects.setScene("dawnOpen");
+    if (dawn && segment === 0) effects.setScene("dawnOpen");
     effects.clue(kind);
     save();
     renderObjective();
-    openReader(segment);
+    if (dawn) {
+      narrator.stop();
+      renderDawnLine();
+    } else openReader(segment);
   });
 }
 
-function openReader(tab) {
+function openReader(tab, evidence) {
   world.clearInput();
   effects.setReading(true);
   readerTab = tab;
   get("reader-kicker").textContent = "第 " + activeChapter().number + " 章 / " + activeChapter().roman;
   get("reader-title").textContent = activeChapter().title;
-  renderReader();
+  renderReader(evidence);
   if (!reader.open) reader.showModal();
   requestAnimationFrame(() => get("reader-tabs").querySelector("[aria-current]")?.scrollIntoView({block: "nearest", inline: "nearest"}));
 }
@@ -591,7 +627,8 @@ const world = createWorld({
   onPosition: (position) => {
     if (currentView !== "map") {
       if (currentView === "play" && activeChapter().number === 1) {
-        get("scene-place").textContent = position.x < 5.55 ? "伦敦 · 菲利普的卧室" : "伦敦 · 母亲的卧室";
+        get("scene-place").textContent = position.x < 5.55 ? "伦敦 · 菲利普的卧室"
+          : position.x < 6.82 ? "伦敦 · 楼梯" : position.z < -6.15 ? "伦敦 · 门厅" : "伦敦 · 母亲的卧室";
       }
       return;
     }
@@ -625,6 +662,10 @@ get("open-book").addEventListener("click", () => {
 });
 get("close-reader").addEventListener("click", () => reader.close());
 reader.addEventListener("close", () => { narrator.stop(); effects.setReading(false); });
+const narrationAudio = get("narration-audio");
+for (const event of ["play", "pause"]) {
+  narrationAudio.addEventListener(event, () => effects.setReading(reader.open || !narrationAudio.paused));
+}
 function applySceneAudio() {
   effects.setEnabled(state.sceneAudio);
   get("scene-audio").setAttribute("aria-pressed", String(state.sceneAudio));

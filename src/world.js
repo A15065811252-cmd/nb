@@ -403,6 +403,7 @@ function attendant(parent, x, z) {
   face.scale.y = 1.19;
   const bonnet = shape(maid, new THREE.SphereGeometry(.167, 15, 11), 0xe4d7b7, 0, 1.663, -.024);
   bonnet.scale.set(1.04, .46, .92);
+  return maid;
 }
 
 function dawnChamber(scene, palette, found) {
@@ -422,6 +423,7 @@ function dawnChamber(scene, palette, found) {
   });
   const childBed = group(child, -2.95, 0, -2.94);
   bed(childBed, green);
+  const maid = attendant(child, .76, -5.28);
   carpet(child, 5.30, 4.55, 0x604437, .25, .83);
   const washstand = group(child, -3.97, 0, -4.49);
   table(washstand, .75, .66, .81);
@@ -467,6 +469,11 @@ function dawnChamber(scene, palette, found) {
   carpet(mother, 4.90, 2.90, 0x68453c, .13, -.48);
   attendant(mother, -3.85, -2.31);
   const door = makeDoor(mother, {x: hallX, z: -5.99, color: 0x72543e});
+  const doctor = group(mother, hallX + .38, 0, -8.30);
+  cylinder(doctor, 0x30302d, .18, .23, .87, 0, .46, 0);
+  box(doctor, 0x393c38, .47, .59, .29, 0, 1.18, 0);
+  box(doctor, 0xc9bca8, .11, .24, .02, 0, 1.37, .155);
+  shape(doctor, new THREE.SphereGeometry(.133, 12, 8), 0xb19378, 0, 1.59, 0);
 
   const daylight = new THREE.SpotLight(0xb9d4e3, 22, 19, .66, .67, 2);
   daylight.position.set(-.44, 3.82, -5.14);
@@ -484,6 +491,9 @@ function dawnChamber(scene, palette, found) {
     window.setOpen(opening);
     daylight.intensity = 20 + opening * 252;
     interiorLight.intensity = 1.18 + opening * .65;
+    maid.position.x = THREE.MathUtils.lerp(.76, -1.38, opening);
+    maid.position.z = THREE.MathUtils.lerp(-5.28, -3.35, opening);
+    maid.rotation.y = THREE.MathUtils.lerp(.94, -1.19, opening);
   };
   showWindow();
   const passage = (from, to) => {
@@ -497,7 +507,9 @@ function dawnChamber(scene, palette, found) {
     window,
     {x: maternalBedX + 11.10, z: maternalBedZ + .52, marker: .77, obstacle: .25,
       approach: {x: 10.82, z: -1.74}},
-    door
+    {x: door.x, z: -7.94, marker: .87, obstacle: 0, opens: door,
+      via: {x: door.x, z: -4.60},
+      approach: {x: door.x, z: -6.79}}
   ];
   return {
     marks,
@@ -916,7 +928,7 @@ export function createWorld({canvas, stage, marker, doorMarker, canMove, onInter
     }
     if (waypoint) return;
     const targetDistance = Math.hypot(camera.position.x - target.x, camera.position.z - target.z);
-    if (targetDistance < 1.85) {
+    if (targetDistance < 1.85 && !target.opens) {
       callback();
       return;
     }
@@ -929,8 +941,10 @@ export function createWorld({canvas, stage, marker, doorMarker, canMove, onInter
       callback();
       return;
     }
+    const opens = [route.length ? room.passageDoor : undefined, target.opens].filter(Boolean);
+    if (target.via && camera.position.z > target.opens.z) route.push(target.via);
     if (reducedMotion()) {
-      if (route.length && room.passageDoor) changeDoor(room.passageDoor, true);
+      for (const door of opens) changeDoor(door, true);
       camera.position.set(endX, altitude(endX), endZ);
       physics?.sync(camera.position);
       yaw = Math.atan2(endX - target.x, endZ - target.z);
@@ -938,10 +952,10 @@ export function createWorld({canvas, stage, marker, doorMarker, canMove, onInter
       callback();
       return;
     }
-    walk(route, end, {opens: route.length ? room.passageDoor : undefined, face: target, callback});
+    walk(route, end, {opens, face: target, callback});
   }
 
-  function walk(route, end, {opens, face, facing, callback}) {
+  function walk(route, end, {opens = [], face, facing, callback}) {
     const points = [camera.position.clone(), ...[...route, end].map(({x,z}) => new THREE.Vector3(x, altitude(x), z))];
     const hops = points.slice(1).map((point, index) => point.distanceTo(points[index]));
     const distance = hops.reduce((total, length) => total + length, 0);
@@ -975,7 +989,7 @@ export function createWorld({canvas, stage, marker, doorMarker, canMove, onInter
       callback();
       return;
     }
-    walk(route, end, {opens: door, facing: 0, callback});
+    walk(route, end, {opens: [door], facing: 0, callback});
   }
 
   function clearInput() { keys.clear(); drag = undefined; }
@@ -1013,12 +1027,12 @@ export function createWorld({canvas, stage, marker, doorMarker, canMove, onInter
   function move(delta) {
     if (waypoint) {
       dirty = true;
-      if (waypoint.opens) {
-        const door = waypoint.opens;
+      const [door] = waypoint.opens;
+      if (door) {
         if (Math.hypot(camera.position.x - door.x, camera.position.z - door.z) < 2.30) {
           changeDoor(door, true);
           if (door.moving) return;
-          waypoint.opens = undefined;
+          waypoint.opens.shift();
         }
       }
       waypoint.elapsed += delta;

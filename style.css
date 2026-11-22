@@ -162,6 +162,15 @@ progress::-moz-progress-bar { background: var(--olive); border-radius: 12px; }
   padding: 14px clamp(14px, 2.2vw, 27px); background: var(--panel); border: 1px solid var(--line); border-top: 0; border-radius: 0 0 5px 5px;
 }
 .taskbar-copy { min-width: 0; }
+.dawn-line {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px;
+  margin-top: 7px; padding-top: 7px; border-top: 1px solid #c9bca3;
+}
+.dawn-speaker { font-size: .8rem; color: var(--muted); }
+.dawn-quote { margin: 0; font: 1rem/1.35 var(--serif); }
+.dawn-line .evidence-link { margin: 0; }
+.dawn-status { font-size: .75rem; color: var(--muted); }
+.dawn-status:empty { display: none; }
 #objective { margin-top: 4px; font-weight: 700; font-size: 15px; }
 .taskbar-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; flex: 0 0 auto; }
 .button { padding: 9px 15px; border: 1px solid transparent; min-height: 43px; border-radius: 3px; font-weight: 700; }

@@ -218,6 +218,12 @@ try {
   await page.waitForFunction(() => window.playedSoundFiles.some((file) => file.includes("/assets/sfx/wood-")));
   await page.keyboard.up("KeyD");
   await page.keyboard.press("KeyE");
+  await page.getByRole("button", {name: "朗读场景原句"}).waitFor({state: "visible"});
+  assert.match(await page.locator("#dawn-line").textContent(), /Wake up, Philip/);
+  assert.equal(await page.locator("#reader").isVisible(), false);
+  await page.getByRole("button", {name: "朗读场景原句"}).click();
+  await page.waitForFunction(() => !document.querySelector("#narration-audio").paused);
+  await page.getByRole("button", {name: "查看原段"}).click();
   await page.locator("#reader").waitFor({state: "visible"});
   assert.match(await page.locator(".reading-guide").textContent(), /窗帘/);
   await page.getByRole("button", {name: "朗读原文第 2 段", exact: true}).click();
@@ -238,7 +244,19 @@ try {
     assert.equal(await page.locator("#chapter-list button:enabled").count(), openedChapters);
     for (let section = 0; section < 3; section++) {
       if (chapter.number !== 1 || section !== 0) {
-        await page.getByRole("button", {name: "前往线索", exact: true}).click();
+        if (chapter.number === 1 && section === 1) await page.emulateMedia({reducedMotion: "no-preference"});
+        const action = chapter.number === 1 ? ["看向窗边", "随女仆下楼", "转到门厅"][section] : "前往线索";
+        await page.getByRole("button", {name: action, exact: true}).click();
+        if (chapter.number === 1) {
+          await page.waitForFunction((expected) => document.querySelector(".dawn-quote")?.textContent === expected,
+            chapter.paragraphs[section === 1 ? 5 : 24]);
+          assert.equal(await page.locator("#reader").isVisible(), false);
+          if (section === 2) {
+            await page.waitForFunction(() => document.querySelector("#scene-place").textContent.includes("门厅"));
+            await page.emulateMedia({reducedMotion: "reduce"});
+          }
+          await page.getByRole("button", {name: "查看原段"}).click();
+        }
         await page.locator("#reader").waitFor({state: "visible"});
       }
       const start = chapter.beats[section][0];
@@ -267,7 +285,7 @@ try {
       assert.equal(await page.getByRole("button", {name: "完成本章", exact: true}).isEnabled(), false);
       await page.getByRole("button", {name: chapter.questions[0][2][0], exact: true}).click();
       assert.equal(await page.locator(".answer.wrong").count(), 1);
-      await page.locator(".evidence-link").click();
+      await page.locator("#reader .evidence-link").click();
       assert.equal(await page.locator(".is-evidence").getAttribute("id"), "source-" + chapter.questions[0][0]);
       await page.getByRole("button", {name: "理解检查", exact: true}).click();
     }
@@ -326,7 +344,8 @@ try {
   await mobile.keyboard.press("Escape");
   await mobile.locator("html[data-game-fullscreen]").waitFor({state: "detached"});
   if (process.env.BONDAGE_SCREENSHOTS) await mobile.screenshot({path: join(process.env.BONDAGE_SCREENSHOTS, "bondage-mobile.png")});
-  await mobile.getByRole("button", {name: "前往线索", exact: true}).tap();
+  await mobile.getByRole("button", {name: "看向窗边", exact: true}).tap();
+  await mobile.getByRole("button", {name: "查看原段"}).tap();
   assert.ok(await mobile.locator("#reader").isVisible());
   assert.deepEqual(errors, []);
   console.log("Completed all 21 chapters, including all 745 original paragraphs, 63 scene interactions, and 42 comprehension questions.");
